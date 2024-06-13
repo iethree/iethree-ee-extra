@@ -29,6 +29,7 @@ jobs:
           git config --global user.name "Metabase bot"
 
           git checkout -b update-ee-extra-build-$NEW_VERSION
+          cd .github/workflows
           sed -i "s/EE_VERSION: .*/EE_VERSION: $NEW_VERSION/g" build.yml
           sed -i "s/EXTRA_SUFFIX: .*/EXTRA_SUFFIX: "X01"/g" build.yml
 
