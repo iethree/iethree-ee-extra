@@ -1,0 +1,22 @@
+name: Build Something Great
+
+on:
+  pull_request:
+  push:
+    branches:
+      - 'main'
+
+env:
+  OTHER_SETTING: def
+  EE_VERSION: v1.88.7
+  EXTRA_SUFFIX: "X02"
+  OTHER_VAR: abc
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: build it
+        run: | # bash
+          echo "Hello, World!"

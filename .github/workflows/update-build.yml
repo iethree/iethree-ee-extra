@@ -1,0 +1,43 @@
+name: Update EE Extra Build
+run-name: Update EE Extra Build to ${{ inputs.version || github.event.client_payload.version }}
+
+on:
+  repository_dispatch:
+    types: ['update-ee-extra-build']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Metabase ee version (e.g. v1.46.3)'
+        type: string
+        required: true
+
+permissions:
+  issues: write
+
+jobs:
+  update-ee-extra-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      NEW_VERSION: ${{ inputs.version || github.event.client_payload.version }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: update build.yml
+        run: | # bash
+          git config --global user.email "metabase-bot@metabase.com"
+          git config --global user.name "Metabase bot"
+
+          git checkout -b update-ee-extra-build-$NEW_VERSION
+          sed -i "s/EE_VERSION: .*/EE_VERSION: $NEW_VERSION/g" build.yml
+          sed -i "s/EXTRA_SUFFIX: .*/EXTRA_SUFFIX: "X01"/g" build.yml
+
+          git add build.yml
+          git commit -m "Update EE Extra build to $NEW_VERSION-X01"
+          git push origin update-ee-extra-build-$NEW_VERSION-X01
+
+      - name: open pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: | # bash
+          gh pr create --fill
