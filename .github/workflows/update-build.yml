@@ -11,18 +11,13 @@ on:
         type: string
         required: true
 
-permissions:
-  pull-requests: write
-  contents: write
-  actions: write
-
 jobs:
   update-ee-extra-build:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
       NEW_VERSION: ${{ inputs.version || github.event.client_payload.version }}
-      GITHUB_TOKEN: ${{ github.token }}
+      GITHUB_TOKEN: ${{ secrets.METABASE_AUTOMATION_USER_TOKEN }}
     steps:
       - uses: actions/checkout@v4
       - name: update build.yml
