@@ -23,6 +23,8 @@ jobs:
       GH_TOKEN: ${{ secrets.METABASE_AUTOMATION_USER_TOKEN }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.METABASE_AUTOMATION_USER_TOKEN }}
       - name: update build.yml
         run: | # bash
           git config --global user.email "metabase-bot@metabase.com"
@@ -38,7 +40,5 @@ jobs:
           git push origin update-ee-extra-build-$NEW_VERSION-X01
 
       - name: open pr
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: | # bash
           gh pr create --fill
