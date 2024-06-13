@@ -12,7 +12,8 @@ on:
         required: true
 
 permissions:
-  issues: write
+  pull-requests: write
+  contents: write
 
 jobs:
   update-ee-extra-build:
@@ -20,7 +21,7 @@ jobs:
     timeout-minutes: 5
     env:
       NEW_VERSION: ${{ inputs.version || github.event.client_payload.version }}
-      GH_TOKEN: ${{ github.token }}
+      GITHUB_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
       - name: update build.yml
