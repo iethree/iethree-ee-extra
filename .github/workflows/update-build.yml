@@ -10,10 +10,10 @@ on:
         description: 'Metabase ee version (e.g. v1.46.3)'
         type: string
         required: true
-permissions:
-  contents: write
-  pull-requests: write
-  actions: write
+# permissions:
+#   contents: write
+#   pull-requests: write
+#   actions: write
 jobs:
   update-ee-extra-build:
     runs-on: ubuntu-latest
