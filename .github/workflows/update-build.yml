@@ -10,32 +10,110 @@ on:
         description: 'Metabase ee version (e.g. v1.46.3)'
         type: string
         required: true
+      auto:
+        description: push to ECR and HM?
+        type: boolean
+        default: false
+      extra_suffix:
+        description: 'Extra suffix (e.g. X01)'
+        type: string
+        default: X01
+  push:
+    branches:
+      - master
+  pull_request:
+
+env:
+  EE_VERSION: ${{ inputs.version || github.event.client_payload.version || 'v1.53.13.1' }} # If pushing to master update this to the
 
 jobs:
-  update-ee-extra-build:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+    - name: Set up environment based on the build type
+      run: | # bash
+        exit 1
+
+  containerize:
+    runs-on: ubuntu-latest
+    needs: build
+    timeout-minutes: 10
+    steps:
+    - name: Set up environment based on the build type
+      run: | # bash
+        exit 0
+
+  post-result-to-slack:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    needs: [build, containerize]
+    if: always()
     env:
-      NEW_VERSION: ${{ inputs.version || github.event.client_payload.version }}
-      GH_TOKEN: ${{ secrets.METABASE_AUTOMATION_USER_TOKEN }}
+      needs: ${{ toJson(needs) }}
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.METABASE_AUTOMATION_USER_TOKEN }}
-      - name: update build.yml
-        run: | # bash
-          git config --global user.email "metabase-bot@metabase.com"
-          git config --global user.name "Metabase bot"
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Install slack
+      run: npm install @slack/web-api
+    - name: Send Slack Message
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ secrets.METABASE_AUTOMATION_USER_TOKEN }}
+        script: | # js
+          const S = require('.github/scripts/slack.js');
+          // const { WebClient } = require('@slack/web-api');
+          // const slack = new WebClient('${{ secrets.SLACK_BOT_TOKEN }}');
 
-          git checkout -b update-ee-extra-build-$NEW_VERSION-X01
-          cd .github/workflows
-          sed -i "s/EE_VERSION: .*/EE_VERSION: $NEW_VERSION/g" build.yml
-          sed -i "s/EXTRA_SUFFIX: .*/EXTRA_SUFFIX: X01/g" build.yml
+          const version = '${{ env.EE_VERSION }}';
+          const channelName = 'bot-testing';
+          const attempt = ${{ github.run_attempt }};
+          const MAX_ATTEMPTS = 2;
 
-          git add build.yml
-          git commit -m "Update EE Extra build to $NEW_VERSION-X01"
-          git push origin update-ee-extra-build-$NEW_VERSION-X01
+          const needs = JSON.parse(process.env.needs);
+          const jobs = Object.entries(needs).map(
+            ([jobName, jobValues]) => ({
+              name: jobName,
+              result: jobValues.result
+            }));
 
-      - name: open pr
-        run: | # bash
-          gh pr create --fill
+          const success = jobs.every(job => job.result === 'success');
+
+          if(!success && attempt < MAX_ATTEMPTS) {
+            console.log(`Build failed, but retrying attempt ${attempt} of ${MAX_ATTEMPTS}`);
+            return;
+          }
+
+          const { id: messageId } = await S.getExistingSlackMessage({
+            version,
+            channelName,
+          });
+
+          const actions_link = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/workflows/update-build.yml`;
+
+          const message = success
+            ? `:very-green-check: <${actions_link}|EE extra build> \`${version}\` successfully built and pushed to ECR`
+            : `:ohno: <${actions_link}|EE extra build> \`${version}\` failed`;
+
+          await S.sendSlackReply({
+            channelName,
+            messageId,
+            message,
+          });
+
+          if (success) {
+            return;
+          }
+
+          await S.removeSlackReaction({
+            channelName,
+            messageId,
+            reaction: 'very-green-check',
+          });
+
+          await S.addSlackReaction({
+            channelName,
+            messageId,
+            reaction: 'warning',
+          });
