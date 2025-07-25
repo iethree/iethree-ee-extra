@@ -8,8 +8,8 @@ on:
 
 env:
   OTHER_SETTING: def
-  EE_VERSION: v1.88.7
-  EXTRA_SUFFIX: "X02"
+  EE_VERSION: v1.88.8
+  EXTRA_SUFFIX: X01
   OTHER_VAR: abc
 
 jobs:
