@@ -1,0 +1,32 @@
+name: Re-run build
+
+on:
+  workflow_run:
+    workflows: [Update EE Extra Build]
+    types: [completed]
+    branches: [main]
+
+jobs:
+  rerun-on-failure:
+    name: 'Re-run ''${{ github.event.workflow_run.name }}'' workflow'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 2
+    if: github.event.workflow_run.conclusion == 'failure'
+    steps:
+      - name: Trigger a re-run
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.METABASE_AUTOMATION_USER_TOKEN }}
+          script: | # js
+            const MAX_ATTEMPTS = 3;
+            const ATTEMPT = ${{ github.event.workflow_run.run_attempt }};
+
+            console.log(`Attempt ${ATTEMPT} of ${MAX_ATTEMPTS}`);
+
+            if (ATTEMPT < MAX_ATTEMPTS) {
+              github.rest.actions.reRunWorkflowFailedJobs({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                run_id: ${{ github.event.workflow_run.id }},
+              });
+            }
